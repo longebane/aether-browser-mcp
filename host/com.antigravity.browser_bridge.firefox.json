@@ -1,0 +1,9 @@
+{
+  "name": "com.antigravity.browser_bridge",
+  "description": "Aether Native Messaging Host Bridge for AI Agents (Firefox)",
+  "path": "run-host.bat",
+  "type": "stdio",
+  "allowed_extensions": [
+    "aether@studiodao.com"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "name": "@studio-dao/aether-browser-mcp",
+  "version": "0.1.0",
+  "description": "Aether Browser MCP: Ultra token-efficient Chrome extension and native bridge for AI agents (Claude, Cursor, Antigravity)",
+  "type": "module",
+  "main": "dist/mcp/index.js",
+  "bin": {
+    "aether-browser-mcp": "./dist/mcp/index.js"
+  },
+  "scripts": {
+    "build": "node scripts/build-all.js",
+    "build:chrome": "node -e \"process.env.TARGET_BROWSER='chrome'; import('child_process').then(cp => cp.execSync('npx vite build', { stdio: 'inherit' }))\"",
+    "build:firefox": "node -e \"process.env.TARGET_BROWSER='firefox'; import('child_process').then(cp => cp.execSync('npx vite build', { stdio: 'inherit' }))\"",
+    "build:mcp": "tsc -p tsconfig.mcp.json",
+    "pack": "node scripts/pack-extension.js",
+    "pack:extension": "node scripts/pack-extension.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "vite build --watch"
+  },
+  "keywords": [
+    "aether",
+    "mcp",
+    "model-context-protocol",
+    "claude-desktop",
+    "cursor",
+    "antigravity",
+    "chrome-extension",
+    "native-messaging",
+    "token-efficient",
+    "dom-serializer",
+    "browser-automation",
+    "stealth"
+  ],
+  "author": "Studio Dao",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.5.0",
+    "ws": "^8.18.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.308",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^22.13.0",
+    "@types/ws": "^8.5.14",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "vitest": "^3.0.5"
+  }
+}

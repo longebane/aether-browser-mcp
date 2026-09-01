@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity Browser Bridge</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --border: #334155;
+      --success: #10b981;
+    }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      width: 380px;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      background-color: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      font-weight: 600;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--success);
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .value {
+      font-size: 13px;
+      font-weight: 500;
+      word-break: break-all;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .metric-box {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+    .metric-num {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    button {
+      width: 100%;
+      background-color: var(--accent);
+      color: #0f172a;
+      border: none;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background-color: var(--accent-hover);
+    }
+    .preview {
+      margin-top: 12px;
+      max-height: 140px;
+      overflow-y: auto;
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 11px;
+      white-space: pre-wrap;
+      color: #cbd5e1;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">
+      <span>⚡ Antigravity Bridge</span>
+    </div>
+    <div class="status-badge">
+      <span class="status-dot"></span>
+      <span id="status-text">Active</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">Target Active Tab</div>
+    <div id="tab-title" class="value">Detecting tab...</div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric-box">
+      <div id="metric-interactive" class="metric-num">--</div>
+      <div class="metric-label">Interactive Nodes</div>
+    </div>
+    <div class="metric-box">
+      <div id="metric-tokens" class="metric-num">--</div>
+      <div class="metric-label">Estimated Tokens</div>
+    </div>
+  </div>
+
+  <button id="btn-snapshot">Capture Token-Pruned Snapshot</button>
+
+  <div id="preview-box" class="preview"></div>
+
+  <script type="module" src="./popup.ts"></script>
+</body>
+</html>

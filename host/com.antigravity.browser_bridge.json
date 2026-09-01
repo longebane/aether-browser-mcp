@@ -1,0 +1,9 @@
+{
+    "name":  "com.antigravity.browser_bridge",
+    "description":  "Antigravity Browser Bridge Native Messaging Host",
+    "path":  "L:\\agents\\studio-dao\\packages\\antigravity-browser-bridge\\host\\run-host.bat",
+    "type":  "stdio",
+    "allowed_origins":  [
+                            "chrome-extension://jplpgdlgelhbgdmifagophibbpbllkni/"
+                        ]
+}

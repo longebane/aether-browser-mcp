@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Matte dark carbon background with subtle border -->
+  <rect width="128" height="128" rx="26" fill="#09090b" stroke="#27272a" stroke-width="2"/>
+
+  <!-- Crisp, flat stylized A / Chevron structure -->
+  <path d="M64 22L28 98H47L56 76H72L81 98H100L64 22Z" fill="none" stroke="#38bdf8" stroke-width="7.5" stroke-linejoin="round" stroke-linecap="round"/>
+  
+  <!-- Solid inner core chevron -->
+  <path d="M54 68L64 43L74 68H54Z" fill="#38bdf8"/>
+
+  <!-- Anchor pulse dot -->
+  <circle cx="64" cy="100" r="4.5" fill="#38bdf8"/>
+</svg>
