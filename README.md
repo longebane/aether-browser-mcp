@@ -1,5 +1,6 @@
 # Aether Browser MCP
 
+[![npm version](https://img.shields.io/npm/v/@studio-dao/aether-browser-mcp?color=cb3837&logo=npm)](https://www.npmjs.com/package/@studio-dao/aether-browser-mcp)
 [![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Available-blue?logo=googlechrome)](https://chromewebstore.google.com/detail/aether-browser-bridge/oefgmdiklgbklpkbmfdhjplokeijgfee)
 [![Firefox Add-ons](https://img.shields.io/badge/Firefox_Add--ons-Available-orange?logo=firefox)](https://addons.mozilla.org/en-US/firefox/addon/aether-browser-bridge/)
 [![GitHub Release](https://img.shields.io/github/v/release/longebane/aether-browser-mcp)](https://github.com/longebane/aether-browser-mcp/releases)
