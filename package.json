@@ -1,6 +1,6 @@
 {
   "name": "@studio-dao/aether-browser-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Aether Browser MCP: Ultra token-efficient Chrome extension and native bridge for AI agents (Claude, Cursor, Antigravity)",
   "type": "module",
   "main": "dist/mcp/index.js",

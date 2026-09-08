@@ -1,5 +1,10 @@
 # Aether Browser MCP
 
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Available-blue?logo=googlechrome)](https://chromewebstore.google.com/detail/aether-browser-bridge/oefgmdiklgbklpkbmfdhjplokeijgfee)
+[![Firefox Add-ons](https://img.shields.io/badge/Firefox_Add--ons-Available-orange?logo=firefox)](https://addons.mozilla.org/en-US/firefox/addon/aether-browser-bridge/)
+[![GitHub Release](https://img.shields.io/github/v/release/longebane/aether-browser-mcp)](https://github.com/longebane/aether-browser-mcp/releases)
+[![Website](https://img.shields.io/badge/Website-aether.studiodao.com-0066cc)](https://aether.studiodao.com)
+
 A lightweight, token-efficient browser automation bridge for LLM agents (Claude Desktop, Cursor, Windsurf, Antigravity) built on the Model Context Protocol (MCP).
 
 Unlike standard headless browser tools or raw Chrome DevTools protocol wrappers that dump 50,000+ tokens of raw HTML into context, Aether serializes active web pages into a compact, numbered Markdown map (typically <1,000 tokens) and dispatches synthetic event streams.
@@ -42,7 +47,7 @@ Standard browser automation approaches for LLMs have two core issues:
       |
       | Local IPC (Native Messaging / WebSocket)
       v
-[ Aether Chrome Extension ] (Manifest V3)
+[ Aether Browser Extension ] (Chrome / Firefox Manifest V3)
   ├── Background Worker  (Tab Group & Session Router)
   └── Content Script     (DOM Serializer & Event Dispatcher)
 ```
@@ -51,8 +56,12 @@ Standard browser automation approaches for LLMs have two core issues:
 
 ## Installation & Setup
 
-### 1. Clone and Build
+### 1. Install the Browser Extension
 
+- **Chrome / Brave / Edge**: [Add to Chrome (Chrome Web Store)](https://chromewebstore.google.com/detail/aether-browser-bridge/oefgmdiklgbklpkbmfdhjplokeijgfee)
+- **Firefox**: [Add to Firefox (Mozilla Add-ons)](https://addons.mozilla.org/en-US/firefox/addon/aether-browser-bridge/)
+
+Or build from source:
 ```bash
 git clone https://github.com/longebane/aether-browser-mcp.git
 cd aether-browser-mcp

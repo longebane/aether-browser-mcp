@@ -39,15 +39,20 @@ function packageFolder(folderName, zipName) {
   console.log(`  -> Created ${zipOutput}`);
 }
 
+import { readFileSync } from 'fs';
+
 if (!existsSync(distDir)) {
   mkdirSync(distDir, { recursive: true });
 }
 
-// Package Chrome (both filename conventions for store & repo releases)
-packageFolder('chrome', 'aether-chrome-v0.1.0.zip');
-packageFolder('chrome', 'aether-browser-bridge-v0.1.0.zip');
+const pkg = JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf8'));
+const version = pkg.version || '0.1.1';
+
+// Package Chrome
+packageFolder('chrome', `aether-chrome-v${version}.zip`);
+packageFolder('chrome', `aether-browser-bridge-v${version}.zip`);
 
 // Package Firefox
-packageFolder('firefox', 'aether-firefox-v0.1.0.zip');
+packageFolder('firefox', `aether-firefox-v${version}.zip`);
 
-console.log('\nAll browser bundles packaged successfully!\n');
+console.log(`\nAll browser bundles for v${version} packaged successfully!\n`);
