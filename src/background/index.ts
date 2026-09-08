@@ -85,6 +85,29 @@ function connectNativeHost(): void {
   }
 }
 
+async function getSavedAgentGroupId(): Promise<number | null> {
+  try {
+    if (typeof chrome.storage?.local !== 'undefined') {
+      const data = await chrome.storage.local.get('agentGroupId');
+      return typeof data.agentGroupId === 'number' ? data.agentGroupId : null;
+    }
+  } catch {}
+  return null;
+}
+
+async function setSavedAgentGroupId(id: number | null): Promise<void> {
+  lastAgentGroupId = id;
+  try {
+    if (typeof chrome.storage?.local !== 'undefined') {
+      if (id === null) {
+        await chrome.storage.local.remove('agentGroupId');
+      } else {
+        await chrome.storage.local.set({ agentGroupId: id });
+      }
+    }
+  } catch {}
+}
+
 async function getActiveTab(): Promise<chrome.tabs.Tab> {
   const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (tabs && tabs.length > 0 && tabs[0].id) {
@@ -106,7 +129,10 @@ async function findExistingAgentGroup(preferredWindowId?: number): Promise<chrom
 
   try {
     const allGroups = await chrome.tabGroups.query({});
-    if (!allGroups || allGroups.length === 0) return null;
+    if (!allGroups || allGroups.length === 0) {
+      await setSavedAgentGroupId(null);
+      return null;
+    }
 
     const isAgentGroup = (g: chrome.tabGroups.TabGroup) => {
       const t = (g.title || '').toLowerCase().trim();
@@ -119,18 +145,40 @@ async function findExistingAgentGroup(preferredWindowId?: number): Promise<chrom
       );
     };
 
+    // 1. Check saved group ID from storage or memory
+    const savedId = lastAgentGroupId ?? await getSavedAgentGroupId();
+    if (savedId !== null) {
+      const byId = allGroups.find((g) => g.id === savedId);
+      if (byId) {
+        const tabs = await chrome.tabs.query({ groupId: byId.id });
+        if (tabs && tabs.length > 0) {
+          lastAgentGroupId = byId.id;
+          return byId;
+        }
+      }
+    }
+
+    // 2. Try window match in preferred window
     if (preferredWindowId) {
       const windowMatch = allGroups.find((g) => g.windowId === preferredWindowId && isAgentGroup(g));
-      if (windowMatch) return windowMatch;
+      if (windowMatch) {
+        const tabs = await chrome.tabs.query({ groupId: windowMatch.id });
+        if (tabs && tabs.length > 0) {
+          await setSavedAgentGroupId(windowMatch.id);
+          return windowMatch;
+        }
+      }
     }
 
-    if (lastAgentGroupId !== null) {
-      const byId = allGroups.find((g) => g.id === lastAgentGroupId);
-      if (byId) return byId;
+    // 3. Match any agent group that actually has tabs
+    const matchingGroups = allGroups.filter(isAgentGroup);
+    for (const group of matchingGroups) {
+      const tabs = await chrome.tabs.query({ groupId: group.id });
+      if (tabs && tabs.length > 0) {
+        await setSavedAgentGroupId(group.id);
+        return group;
+      }
     }
-
-    const anyMatch = allGroups.find(isAgentGroup);
-    if (anyMatch) return anyMatch;
   } catch (err) {
     console.warn('[Aether Bridge] Tab group query failed:', err);
   }
@@ -140,7 +188,7 @@ async function findExistingAgentGroup(preferredWindowId?: number): Promise<chrom
 
 async function getOrCreateAgentTab(
   url: string,
-  makeActive = true,
+  makeActive = false,
   forceNewTab = false,
   customGroupTitle?: string
 ): Promise<chrome.tabs.Tab> {
@@ -153,24 +201,28 @@ async function getOrCreateAgentTab(
   } catch {}
 
   const agentGroup = await findExistingAgentGroup(targetWindowId);
+  // Guarantee new tab is created in the same window as the group, or the target window
   const windowId = agentGroup ? agentGroup.windowId : targetWindowId;
 
+  // 1. If agent group exists and we are not forcing a new tab, reuse existing tab in that group
   if (agentGroup && !forceNewTab) {
     try {
       const groupTabs = await chrome.tabs.query({ groupId: agentGroup.id });
       if (groupTabs && groupTabs.length > 0) {
         const targetTab = groupTabs.find((t) => t.active) || groupTabs[0];
-        const updated = await chrome.tabs.update(targetTab.id!, {
-          url,
-          active: makeActive
-        });
+        const updateOpts: chrome.tabs.UpdateProperties = { url };
+        if (makeActive) {
+          updateOpts.active = true;
+        }
+        const updated = await chrome.tabs.update(targetTab.id!, updateOpts);
         lastAgentTabId = updated.id!;
-        lastAgentGroupId = agentGroup.id;
+        await setSavedAgentGroupId(agentGroup.id);
         return updated;
       }
     } catch {}
   }
 
+  // 2. Create a new tab (in background by default)
   const createOpts: chrome.tabs.CreateProperties = {
     url,
     active: makeActive
@@ -180,17 +232,26 @@ async function getOrCreateAgentTab(
   const newTab = await chrome.tabs.create(createOpts);
   lastAgentTabId = newTab.id!;
 
+  // 3. Group tab into existing or new Agent Tab Group
   if (typeof chrome.tabs.group === 'function' && newTab.id) {
     try {
-      const groupArgs: { tabIds: number; groupId?: number } = {
-        tabIds: newTab.id
-      };
+      let groupId: number;
       if (agentGroup) {
-        groupArgs.groupId = agentGroup.id;
+        try {
+          groupId = await chrome.tabs.group({
+            tabIds: [newTab.id],
+            groupId: agentGroup.id
+          });
+        } catch {
+          // Fallback if group was disbanded
+          groupId = await chrome.tabs.group({ tabIds: [newTab.id] });
+        }
+      } else {
+        groupId = await chrome.tabs.group({ tabIds: [newTab.id] });
       }
 
-      const groupId = await chrome.tabs.group(groupArgs);
       lastAgentGroupId = groupId;
+      await setSavedAgentGroupId(groupId);
 
       if (typeof chrome.tabGroups !== 'undefined' && chrome.tabGroups.update) {
         await chrome.tabGroups.update(groupId, {
@@ -224,6 +285,19 @@ async function resolveTargetTab(requestedTabId?: number): Promise<chrome.tabs.Ta
     }
   }
 
+  // Check if an agent group exists with tabs in the background
+  const agentGroup = await findExistingAgentGroup();
+  if (agentGroup) {
+    try {
+      const groupTabs = await chrome.tabs.query({ groupId: agentGroup.id });
+      if (groupTabs && groupTabs.length > 0) {
+        const targetTab = groupTabs.find((t) => t.active) || groupTabs[0];
+        lastAgentTabId = targetTab.id!;
+        return targetTab;
+      }
+    } catch {}
+  }
+
   return await getActiveTab();
 }
 
@@ -247,8 +321,20 @@ async function ensureContentScriptInjected(tabId: number): Promise<void> {
 
 async function handleBridgeRequest(msg: BridgeMessage): Promise<BridgeResponse> {
   try {
+    if (msg.type === 'STATUS') {
+      return {
+        id: msg.id || 'status',
+        success: true,
+        data: {
+          nativeConnected: nativePort !== null,
+          wsConnected: wsClient !== null && wsClient.readyState === WebSocket.OPEN,
+          version: '0.1.0'
+        }
+      };
+    }
+
     if (msg.type === 'GET_TAB_INFO') {
-      const tab = await getActiveTab();
+      const tab = await resolveTargetTab((msg.payload as any)?.tabId);
       const tabInfo: TabInfo = {
         tabId: tab.id!,
         url: tab.url || '',
@@ -273,12 +359,16 @@ async function handleBridgeRequest(msg: BridgeMessage): Promise<BridgeResponse> 
 
       if (payload.actUponCurrentTab || payload.useCurrentTab) {
         const currentActive = await getActiveTab();
-        tab = await chrome.tabs.update(currentActive.id!, { url: payload.url });
+        const updateOpts: chrome.tabs.UpdateProperties = { url: payload.url };
+        if (payload.active) {
+          updateOpts.active = true;
+        }
+        tab = await chrome.tabs.update(currentActive.id!, updateOpts);
         lastAgentTabId = tab.id!;
       } else {
         tab = await getOrCreateAgentTab(
           payload.url,
-          payload.active ?? true,
+          payload.active ?? false,
           payload.newTab ?? false,
           payload.groupTitle
         );
@@ -294,6 +384,67 @@ async function handleBridgeRequest(msg: BridgeMessage): Promise<BridgeResponse> 
           tabId: tab.id,
           url: payload.url,
           status: 'navigated'
+        }
+      };
+    }
+
+    if (msg.type === 'CLOSE_TAB' || msg.type === 'CLEANUP_TABS') {
+      const payload = (msg.payload || {}) as CloseTabOptions;
+      const closedIds: number[] = [];
+
+      if (payload.allAgentTabs || msg.type === 'CLEANUP_TABS') {
+        const agentGroup = await findExistingAgentGroup();
+        if (agentGroup) {
+          try {
+            const groupTabs = await chrome.tabs.query({ groupId: agentGroup.id });
+            for (const t of groupTabs) {
+              if (t.id) {
+                await chrome.tabs.remove(t.id);
+                closedIds.push(t.id);
+              }
+            }
+          } catch {}
+        }
+        if (lastAgentTabId && !closedIds.includes(lastAgentTabId)) {
+          try {
+            await chrome.tabs.remove(lastAgentTabId);
+            closedIds.push(lastAgentTabId);
+          } catch {}
+        }
+        lastAgentTabId = null;
+        await setSavedAgentGroupId(null);
+      } else {
+        const targetTab = payload.tabId
+          ? await chrome.tabs.get(payload.tabId).catch(() => null)
+          : await resolveTargetTab().catch(() => null);
+
+        if (targetTab?.id) {
+          await chrome.tabs.remove(targetTab.id);
+          closedIds.push(targetTab.id);
+          if (lastAgentTabId === targetTab.id) {
+            lastAgentTabId = null;
+          }
+        }
+      }
+
+      let remainingCount = 0;
+      const currentGroup = await findExistingAgentGroup();
+      if (currentGroup) {
+        try {
+          const remainingTabs = await chrome.tabs.query({ groupId: currentGroup.id });
+          remainingCount = remainingTabs.length;
+          if (remainingCount === 0) {
+            await setSavedAgentGroupId(null);
+          }
+        } catch {}
+      }
+
+      return {
+        id: msg.id,
+        success: true,
+        data: {
+          closedTabIds: closedIds,
+          remainingAgentTabs: remainingCount
         }
       };
     }

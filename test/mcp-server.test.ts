@@ -16,7 +16,7 @@ describe('MCP Server & Bridge Integration', () => {
     await bridge.stop();
   });
 
-  it('initializes and lists all 5 browser automation tools', async () => {
+  it('initializes and lists all 6 browser automation tools', async () => {
     const server = await createMcpServer(bridge);
     
     const listHandler = (server as any)._requestHandlers.get(ListToolsRequestSchema.shape.method.value);
@@ -32,7 +32,9 @@ describe('MCP Server & Bridge Integration', () => {
     expect(toolNames).toContain('interact_element');
     expect(toolNames).toContain('capture_viewport');
     expect(toolNames).toContain('navigate_tab');
+    expect(toolNames).toContain('close_tab');
     expect(toolNames).toContain('get_browser_status');
+    expect(toolNames.length).toBe(6);
   });
 
   it('rejects tool calls when no extension client is connected', async () => {
@@ -154,6 +156,47 @@ describe('MCP Server & Bridge Integration', () => {
     expect(result.content[0].text).toContain('Clicked [1] <button>');
     expect(result.content[0].text).toContain('Updated Page State');
     expect(result.content[0].text).toContain('# Dashboard');
+
+    mockExtension.close();
+  });
+
+  it('executes close_tab and reports remaining tabs', async () => {
+    const server = await createMcpServer(bridge);
+
+    const mockExtension = new WebSocket(`ws://127.0.0.1:${testPort}`);
+    await new Promise<void>((resolve) => {
+      mockExtension.on('open', () => resolve());
+    });
+
+    mockExtension.on('message', (data: string) => {
+      const msg = JSON.parse(data.toString());
+      if (msg.type === 'CLOSE_TAB') {
+        mockExtension.send(JSON.stringify({
+          id: msg.id,
+          success: true,
+          data: {
+            closedTabIds: [12345],
+            remainingAgentTabs: 0
+          }
+        }));
+      }
+    });
+
+    const callHandler = (server as any)._requestHandlers.get(CallToolRequestSchema.shape.method.value);
+
+    const result = await callHandler({
+      method: 'tools/call',
+      params: {
+        name: 'close_tab',
+        arguments: {
+          allAgentTabs: true
+        }
+      }
+    });
+
+    expect(result.isError).toBeUndefined();
+    expect(result.content[0].text).toContain('Closed tab(s): [12345]');
+    expect(result.content[0].text).toContain('Remaining agent tabs: 0');
 
     mockExtension.close();
   });

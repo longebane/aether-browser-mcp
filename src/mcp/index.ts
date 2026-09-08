@@ -8,6 +8,8 @@ import {
 import { BridgeServer } from './bridge-server.js';
 import { 
   BrowserAction, 
+  CloseTabOptions,
+  CloseTabResult,
   DOMSerializerOptions, 
   DOMSnapshot, 
   NavigationOptions, 
@@ -113,7 +115,7 @@ const CAPTURE_VIEWPORT_TOOL: Tool = {
 const NAVIGATE_TAB_TOOL: Tool = {
   name: 'navigate_tab',
   description: 
-    'Navigates the active Chrome tab to a target URL or opens a new tab.',
+    'Navigates the agent browser tab to a target URL or opens a new tab. By default browses silently in the background without stealing focus from the user.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -123,10 +125,33 @@ const NAVIGATE_TAB_TOOL: Tool = {
       },
       newTab: {
         type: 'boolean',
-        description: 'If true, opens the URL in a new tab instead of the active tab.'
+        description: 'If true, opens the URL in a new tab inside the agent group instead of reusing the current agent tab (default: false).'
+      },
+      active: {
+        type: 'boolean',
+        description: 'If true, focuses the tab into the foreground. Default: false (stays in background without interrupting the user).'
       }
     },
     required: ['url']
+  }
+};
+
+const CLOSE_TAB_TOOL: Tool = {
+  name: 'close_tab',
+  description: 
+    'Closes the active agent browser tab or cleans up all agent tabs after a job is complete, preventing browser tab clutter.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      tabId: {
+        type: 'number',
+        description: 'Optional numeric ID of a specific tab to close. If omitted, closes the current agent tab.'
+      },
+      allAgentTabs: {
+        type: 'boolean',
+        description: 'If true, closes all tabs in the Aether Agent tab group and cleans up the group (default: false).'
+      }
+    }
   }
 };
 
@@ -163,6 +188,7 @@ export async function createMcpServer(bridgeServer?: BridgeServer): Promise<Serv
       INTERACT_ELEMENT_TOOL,
       CAPTURE_VIEWPORT_TOOL,
       NAVIGATE_TAB_TOOL,
+      CLOSE_TAB_TOOL,
       GET_BROWSER_STATUS_TOOL
     ]
   }));
@@ -240,6 +266,19 @@ export async function createMcpServer(bridgeServer?: BridgeServer): Promise<Serv
               {
                 type: 'text',
                 text: `Navigated to ${nav.url}\n\n${snapshot.markdown}`
+              }
+            ]
+          };
+        }
+
+        case 'close_tab': {
+          const options = (args || {}) as CloseTabOptions;
+          const result = await bridge.sendRequest<CloseTabResult>('CLOSE_TAB', options);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Closed tab(s): [${result.closedTabIds.join(', ')}]. Remaining agent tabs: ${result.remainingAgentTabs}.`
               }
             ]
           };

@@ -91,6 +91,16 @@ export interface NavigationOptions {
   groupTitle?: string;
 }
 
+export interface CloseTabOptions {
+  tabId?: number;
+  allAgentTabs?: boolean;
+}
+
+export interface CloseTabResult {
+  closedTabIds: number[];
+  remainingAgentTabs: number;
+}
+
 export interface TabInfo {
   tabId: number;
   url: string;
@@ -112,6 +122,8 @@ export type BridgeMessageType =
   | 'GET_TAB_INFO'
   | 'CAPTURE_VIEWPORT'
   | 'NAVIGATE'
+  | 'CLOSE_TAB'
+  | 'CLEANUP_TABS'
   | 'PING'
   | 'STATUS';
 
